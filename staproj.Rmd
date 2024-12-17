@@ -1,0 +1,47 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+#Research Question: 2
+library(tidyverse)
+library(rhdf5)
+set.seed(150)
+logg <- "STA130_Project//STA130_APOGEE.h5" %>% h5read("logg") %>% as_tibble() 
+#logg %>% summarise(standard_deviation = sd(value))
+logg_original_sample <- logg %>% sample_n(size=10000)
+
+sample_sds <- rep(NA,1000)
+for(i in 1:1000){
+  logg10000 <- logg_original_sample %>% sample_n(size=10000,replace = TRUE)
+  sample_sds[i]<- as.numeric(logg10000 %>% summarise(sd(value)))
+}
+logg_standard_deviations <- tibble(standard_deviations = sample_sds)
+ logg_standard_deviations %>% ggplot() + aes(x = standard_deviations) + 
+  geom_histogram(colour = 'black', fill = "grey")
+ 
+ logg_standard_deviations %>% ggplot() + aes(x = standard_deviations) + 
+  geom_boxplot()
+ 
+ quantile(logg_standard_deviations$standard_deviations,c(0.025,0.975))
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+#Research 
+library(tidyverse)
+library(rhdf5)
+carbon_abundance <- "STA130_Project//STA130_APOGEE.h5" %>% h5read("c_h") %>% as_tibble() 
+temp_eff <-"STA130_Project//STA130_APOGEE.h5" %>% h5read("teff") %>% as_tibble()
+ggplot() + aes(x=carbon_abundance$value, y=temp_eff$value) + geom_bin2d()
+```
+
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is display

@@ -1,0 +1,59 @@
+```{r}
+library(tidyverse)
+library(rhdf5)
+```
+
+```{r}
+file = "STA130_APOGEE.h5"
+wavelength <- "STA130_APOGEE.h5" %>% h5read("wavelength") %>% as_tibble()
+spectra <- "STA130_APOGEE.h5" %>% h5read("spectra", index=list(NULL, 1:10000)) %>% t() %>% as_tibble()
+feh <- "STA130_APOGEE.h5" %>% h5read("fe_h") %>% as_tibble()
+snr <- "STA130_APOGEE.h5" %>% h5read("snr") %>% as_tibble()
+logg <- "STA130_APOGEE.h5" %>% h5read("logg") %>% as_tibble()
+teff <- "STA130_APOGEE.h5" %>% h5read("teff") %>% as_tibble()
+```
+
+```{r}
+logg <- "STA130_APOGEE.h5" %>% h5read("logg") %>% as_tibble()
+carb <- "STA130_APOGEE.h5" %>% h5read("c_h") %>% as_tibble()
+fe <- "STA130_APOGEE.h5" %>% h5read("fe_h") %>% as_tibble()
+```
+
+```{r}
+ggplot() + aes(x=teff$value, y=carb$value) + geom_line() + geom_smooth(method="lm", se=FALSE) +
+  labs(title="Line graph of abundance of carbon against effective temperature", x="")
+```
+
+```{r}
+spectra_v1 <- spectra %>% select(V1)
+snr <- snr %>% head(10000)
+ggplot() + aes(y=snr$value, x=spectra_v1$V1) + geom_point() + geom_smooth(method="lm", se=FALSE)
+```
+
+
+```{r}
+ggplot(data=feh) + aes(x=value) + geom_histogram()
+```
+
+```{r}
+head(spectra)
+glimpse(spectra)
+```
+
+```{r}
+spectra_means <- apply(spectra, 1, mean) %>% as_tibble()
+snr <- snr %>% head(10000)
+```
+```{r}
+ggplot() + aes(y=snr$value, x=spectra_means$value) + geom_point() + geom_smooth(method=lm, se=FALSE) + 
+  labs(title="snr against 10,000 average spectra", x="Average Spectra", y="snr")
+```
+
+```{r}
+ggplot(logg) + aes(x=value) + geom_histogram()
+```
+
+```{r}
+ggplot() + aes(x=wavelength$value, y=teff$value)
+```
+

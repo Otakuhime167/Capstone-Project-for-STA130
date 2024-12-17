@@ -1,0 +1,106 @@
+
+STA130 Capstone Project: Understanding Red Giants
+
+```{r}
+library(tidyverse)
+library(rhdf5)
+```
+
+```{r}
+file = "STA130_APOGEE.h5"
+```
+
+Research Question 1:
+Are red giants with higher intensity measurements harder to measure?
+
+Extracting relevant columns from the dataset:
+```{r}
+spectra_1 <- file %>% h5read("spectra", index=list(NULL, 1:30000)) %>% t() %>% as_tibble()
+spectra_2 <- file %>% h5read("spectra", index=list(NULL, 30001:60000)) %>% t() %>% as_tibble()
+spectra_3 <- file %>% h5read("spectra", index=list(NULL, 60001:99705)) %>% t() %>% as_tibble()
+
+snr <- file %>% h5read("snr") %>% as_tibble()
+```
+
+Cleaning the data:
+```{r}
+spectra_means_1 <- apply(spectra_1, 1, mean) %>% as_tibble()
+spectra_means_2 <- apply(spectra_2, 1, mean) %>% as_tibble()
+spectra_means_3 <- apply(spectra_3, 1, mean) %>% as_tibble()
+spectra_means <- rbind(spectra_means_1, spectra_means_2, spectra_means_3)
+```
+
+Analysis:
+```{r}
+lm(snr$value ~ spectra_means$value) %>% summary()
+mod = lm(snr$value ~ spectra_means$value)
+res = summary(mod)
+
+pt(coef(res)[, 3], mod$df, lower = TRUE)
+
+```
+Visualizations:
+```{r}
+ggplot() + aes(x=spectra_means$value, y=snr$value) + geom_point() + geom_smooth(method="lm", se=FALSE) +
+  labs(title="Scatter Plot of Average Intensity Measurements against Snr", x="Average Intensity Measurements", y="Signal-to-noise Ratio")
+ggplot() + aes(x=spectra_means$value, y=snr$value) + geom_quantile() + labs(title="Quantile Plot of Average Intensity Measurements against Snr", x="Average Intensity Measurements", y="Signal-to-noise Ratio")
+```
+
+Research Question 2:
+Does surface gravity vary by a small factor among different red giants?
+
+Extracting the relevant columns:
+```{r}
+logg <- file %>% h5read("logg") %>% as_tibble()
+```
+
+Analysis:
+```{r}
+logg_original_sample <- logg %>% sample_n(size=10000)
+
+sample_cov <- rep(NA,1000)
+for(i in 1:1000){
+  logg10000 <- logg_original_sample %>% sample_n(size=10000,replace = TRUE)
+  sample_cov[i]<- as.numeric(logg10000 %>% summarise(sd(value))) / as.numeric(logg10000 %>% summarise(mean(value)))
+}
+logg_cov <- tibble(coeff_of_var = sample_cov)
+ 
+quantile(logg_cov$coeff_of_var,c(0.025,0.975))
+```
+
+Visualizations:
+```{r}
+logg_cov %>% ggplot() + aes(x = coeff_of_var) + 
+  geom_histogram(bins=30, colour = 'black', fill = "grey") + 
+  geom_vline(aes(xintercept = 0.2236308), color='red') + 
+  geom_vline(aes(xintercept = 0.2308553), color='red') +
+  labs(title='Histogram of Distribution of Coefficient of Variation over 1000 bootstrap samples
+  of size 10000. The red lines show the 95% confidence interval.',
+       x='Coefficient of Variation', y='Count')
+ 
+logg_cov %>% ggplot() + aes(x = coeff_of_var) + 
+  geom_boxplot() + 
+  labs(title='Boxplot of Distribution of Coefficient of Variation over 1000 bootstrap samples 
+       of size 10000', 
+       x= 'Coefficient of Variation')
+```
+
+Question 3:
+Is there a correlation between the abundance of carbon on a red giant star and the effective temperature of that star?
+
+Extracting the relevant columns:
+```{r}
+carbon_abundance <- file %>% h5read("c_h") %>% as_tibble() 
+temp_eff <- file %>% h5read("teff") %>% as_tibble()
+```
+
+Visualizations:
+```{r}
+ggplot() + aes(x=carbon_abundance$value, y=temp_eff$value) + geom_point() + 
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Scatter Plot of Effective Temperature against Abundance of Carbon", 
+       x='Abundance of Carbon', y='Effective Temperature')
+```
+
+
+
